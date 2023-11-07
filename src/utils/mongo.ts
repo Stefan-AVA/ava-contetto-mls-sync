@@ -14,7 +14,7 @@ export class MongoDB {
     if (this.client) return;
     try {
       const client = new MongoClient(this.uri, {
-        serverApi: ServerApiVersion.v1,
+        // serverApi: ServerApiVersion.v1,
         maxPoolSize: 10,
         minPoolSize: 1,
         ssl: true,
