@@ -1,0 +1,26 @@
+{
+  "name": "mls-sync",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx watch ./src/index.ts",
+    "build": "tsc",
+    "start": "node ./build/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cron": "^3.1.6",
+    "dotenv": "^16.3.1",
+    "luxon": "^3.4.3",
+    "mongodb": "^6.2.0",
+    "rets-ddf-client": "^1.2.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.10",
+    "tsx": "^3.14.0",
+    "typescript": "^5.2.2"
+  }
+}
