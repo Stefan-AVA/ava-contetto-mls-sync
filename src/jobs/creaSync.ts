@@ -44,13 +44,26 @@ export const creaSync = async (db: Db) => {
         {}
       );
 
-      await db
-        .collection('mlsListing')
-        .updateOne(
-          { source: Source.crea, source_id: listing.ListingKey },
-          { $set: { ...listing, photos, source: Source.crea, source_id: listing.ListingKey, timestamp } },
-          { upsert: true }
-        );
+      await db.collection('mlsListing').updateOne(
+        { source: Source.crea, source_id: listing.ListingKey },
+        {
+          $set: {
+            ...listing,
+            photos,
+            source: Source.crea,
+            source_id: listing.ListingKey,
+            timestamp,
+            location:
+              listing.Longitude && listing.Latitude
+                ? {
+                    type: 'Point',
+                    coordinates: [listing.Longitude, listing.Latitude],
+                  }
+                : null,
+          },
+        },
+        { upsert: true }
+      );
     }
   }
 };
