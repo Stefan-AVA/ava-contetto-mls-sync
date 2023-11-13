@@ -20,7 +20,7 @@ export const getCreaClient = async () => {
   }
 };
 
-export const creaSearch = async (query: string, limit: number = 10, offset: number = 0) => {
+export const creaSearch = async (query: string, limit?: number, offset?: number, select?: string | string[]) => {
   console.log({ query, limit, offset });
 
   const client = await getCreaClient();
@@ -28,6 +28,7 @@ export const creaSearch = async (query: string, limit: number = 10, offset: numb
   const response = await client.search({
     format: RetsFormat.CompactDecoded,
     query,
+    select,
     searchType: 'Property',
     class: 'Property',
     culture: DdfCulture.EN_CA,

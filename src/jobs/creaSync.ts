@@ -3,6 +3,7 @@ import { Source } from '../types/source';
 import { creaSearch, getCreaPhotos } from '../utils/creaClient';
 import { getISOStringFromUnix, getTimeStampFromString } from '../utils/date';
 import { formatField } from '../utils';
+import { IMlsPhoto } from '../types/mls';
 
 const REQUEST_LIMIT = 100;
 const stValues = [
@@ -38,7 +39,18 @@ export const creaSync = async (db: Db) => {
       const timestamp = getTimeStampFromString(record.ModificationTimestamp);
       console.log('record ===>', record.ListingKey, record.ModificationTimestamp, timestamp);
 
-      const photos = await getCreaPhotos(records[0].ListingKey);
+      const masterRecords = await creaSearch(`(ID=${record.ListingKey})`);
+      let deleted = false;
+      if ((masterRecords?.length || 0) === 0) {
+        console.log('deleted ===>', record.ListingKey);
+        deleted = true;
+      }
+
+      let photos: IMlsPhoto[] = [];
+      if (!deleted) {
+        photos = await getCreaPhotos(records[0].ListingKey);
+      }
+
       const listing: any = Object.keys(record).reduce(
         (obj, key) => ({ ...obj, [key]: stValues.includes(key) ? record[key] : formatField(record[key]) }),
         {}
@@ -53,6 +65,7 @@ export const creaSync = async (db: Db) => {
             source: Source.crea,
             source_id: listing.ListingKey,
             timestamp,
+            deleted,
             location:
               listing.Longitude && listing.Latitude
                 ? {
