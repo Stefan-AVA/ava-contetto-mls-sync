@@ -20,7 +20,7 @@ const stValues = [
 export const creaSync = async (db: Db) => {
   let last_synced_date = '(LastUpdated=2023-10-01T00:00:00Z)';
   const listings = await db
-    .collection('mlsListing')
+    .collection('mlsListings')
     .find({ source: Source.crea, timestamp: { $exists: true } })
     .sort({ timestamp: -1 })
     .limit(1)
@@ -56,7 +56,7 @@ export const creaSync = async (db: Db) => {
         {}
       );
 
-      await db.collection('mlsListing').updateOne(
+      await db.collection('mlsListings').updateOne(
         { source: Source.crea, source_id: listing.ListingKey },
         {
           $set: {
