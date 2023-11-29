@@ -3,18 +3,21 @@ import { Source } from '../types/source';
 import { creaSearch, getCreaPhotos } from '../utils/creaClient';
 import { getISOStringFromUnix, getTimeStampFromString } from '../utils/date';
 import { formatField } from '../utils';
-import { IMlsPhoto } from '../types/mls';
+import { ICoordinates, ILocation } from '../types/mls';
+import { getGeocode } from '../utils/geo';
 
 const REQUEST_LIMIT = 100;
 const stValues = [
   'ListingId',
   'ListingKey',
   'ListOfficeKey',
+  'StreetName',
   'StreetNumber',
   'ListAgentKey',
   'CoListOfficeKey',
   'CoListAgentKey',
   'OriginatingSystemKey',
+  'PostalCode',
 ];
 
 export const creaSync = async (db: Db) => {
@@ -39,22 +42,66 @@ export const creaSync = async (db: Db) => {
       const timestamp = getTimeStampFromString(record.ModificationTimestamp);
       console.log('record ===>', record.ListingKey, record.ModificationTimestamp, timestamp);
 
-      const masterRecords = await creaSearch(`(ID=${record.ListingKey})`);
-      let deleted = false;
-      if ((masterRecords?.length || 0) === 0) {
-        console.log('deleted ===>', record.ListingKey);
-        deleted = true;
+      if (!record.UnparsedAddress && !record.City && !record.StateOrProvince && !record.Country) {
+        continue;
       }
 
-      let photos: IMlsPhoto[] = [];
-      if (!deleted) {
-        photos = await getCreaPhotos(records[0].ListingKey);
-      }
+      const address = `${record.UnparsedAddress}, ${record.City}, ${record.StateOrProvince}, ${record.Country}`.replace(
+        /[&\/\\#,+()$~%.'":*?<>{}]/g,
+        ''
+      );
+      console.log('address ===>', address);
+
+      const photos = await getCreaPhotos(records[0].ListingKey);
 
       const listing: any = Object.keys(record).reduce(
         (obj, key) => ({ ...obj, [key]: stValues.includes(key) ? record[key] : formatField(record[key]) }),
         {}
       );
+
+      const location: ILocation = {
+        type: 'Point',
+        coordinates: [],
+      };
+
+      console.log('position ===>', listing.Longitude, listing.Latitude);
+      if (listing.Longitude && listing.Latitude) {
+        location.coordinates = [listing.Longitude, listing.Latitude];
+        await db.collection('coordinates').updateOne(
+          { address },
+          {
+            $set: {
+              address,
+              lng: listing.Longitude,
+              lat: listing.Latitude,
+            },
+          },
+          { upsert: true }
+        );
+      } else {
+        const coordinates = await db.collection<ICoordinates>('coordinates').findOne({ address });
+        if (!coordinates) {
+          const position = await getGeocode(address);
+          console.log('position ====>', position);
+          if (!position) continue;
+
+          await db.collection('coordinates').updateOne(
+            { address },
+            {
+              $set: {
+                address,
+                lng: position.lng,
+                lat: position.lat,
+              },
+            },
+            { upsert: true }
+          );
+
+          location.coordinates = [position.lng, position.lat];
+        } else {
+          location.coordinates = [coordinates.lng, coordinates.lng];
+        }
+      }
 
       await db.collection('mlsListings').updateOne(
         { source: Source.crea, source_id: listing.ListingKey },
@@ -65,14 +112,8 @@ export const creaSync = async (db: Db) => {
             source: Source.crea,
             source_id: listing.ListingKey,
             timestamp,
-            deleted,
-            location:
-              listing.Longitude && listing.Latitude
-                ? {
-                    type: 'Point',
-                    coordinates: [listing.Longitude, listing.Latitude],
-                  }
-                : null,
+            deleted: false,
+            location,
           },
         },
         { upsert: true }

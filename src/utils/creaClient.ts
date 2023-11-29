@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { DdfCulture, RetsClient, RetsFormat, RetsVersion } from 'rets-ddf-client';
 import { ICreaPhotoResult, IMlsPhoto } from '../types/mls';
 
