@@ -99,7 +99,7 @@ export const creaSync = async (db: Db) => {
 
           location.coordinates = [position.lng, position.lat];
         } else {
-          location.coordinates = [coordinates.lng, coordinates.lng];
+          location.coordinates = [coordinates.lng, coordinates.lat];
         }
       }
 
