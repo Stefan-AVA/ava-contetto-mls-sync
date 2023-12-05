@@ -57,3 +57,49 @@ new CronJob(
   true,
   'America/New_York'
 );
+
+// const update = async () => {
+//   try {
+//     console.log('Crea Master Sync start ===>', new Date().toISOString());
+//     const db = await MongoDB.getDB();
+
+//     var bulkOps: any = [];
+//     let i = 0;
+
+//     const cities = await db.collection('cities').find().toArray();
+//     console.log(cities.length)
+
+//     for (const city of cities) {
+//       var geoJsonLocation = {
+//         type: 'Point',
+//         coordinates: [city.lng, city.lat], // Note: Order is [longitude, latitude]
+//       };
+
+//       bulkOps.push({
+//         updateOne: {
+//           filter: { _id: city._id }, // Assuming _id is the document's ObjectId
+//           update: { $set: { location: geoJsonLocation } },
+//         },
+//       });
+
+//       // Execute the bulk update in batches of 500
+//       if (bulkOps.length === 500) {
+//         i++;
+//         console.log(i);
+//         await db.collection('cities').bulkWrite(bulkOps);
+//         bulkOps = [];
+//       }
+//     }
+
+//     // Execute the remaining bulk update operations
+//     if (bulkOps.length > 0) {
+//       db.collection('cities').bulkWrite(bulkOps);
+//     }
+
+//     console.log('Crea Master Sync end ===>', new Date().toISOString());
+//   } catch (error) {
+//     console.log('Crea Master Sync error ===>', error);
+//   }
+// };
+
+// update();

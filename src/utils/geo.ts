@@ -1,24 +1,19 @@
 import dotenv from 'dotenv';
+import { IGeoCode } from '../types/mls';
 dotenv.config();
 
-interface ILocation {
-  lat: number;
-  lng: number;
-}
-
 interface IGeocodeResponse {
-  items: { position: ILocation }[];
+  items: IGeoCode[];
 }
 
-export const getGeocode = async (address: string): Promise<ILocation | null> => {
+export const getGeocode = async (address: string): Promise<IGeoCode | null> => {
   try {
     const response = await fetch(
       `https://geocode.search.hereapi.com/v1/geocode?q=${address}&apiKey=${process.env.HERE_API_KEY}`
     );
     const data = (await response.json()) as IGeocodeResponse;
-    const position = data?.items[0]?.position;
 
-    return position;
+    return data?.items[0];
   } catch (error) {
     console.log('geocode error ===>', address, error);
     return null;

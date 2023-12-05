@@ -3,7 +3,7 @@ import { Source } from '../types/source';
 import { creaSearch, getCreaPhotos } from '../utils/creaClient';
 import { getISOStringFromUnix, getTimeStampFromString } from '../utils/date';
 import { formatField } from '../utils';
-import { ICoordinates, ILocation } from '../types/mls';
+import { ICoordinates, IGeoCode, ILocation } from '../types/mls';
 import { getGeocode } from '../utils/geo';
 
 const REQUEST_LIMIT = 100;
@@ -46,10 +46,11 @@ export const creaSync = async (db: Db) => {
         continue;
       }
 
-      const address = `${record.UnparsedAddress}, ${record.City}, ${record.StateOrProvince}, ${record.Country}`.replace(
-        /[&\/\\#,+()$~%.'":*?<>{}]/g,
-        ''
-      );
+      const address = `${record.UnparsedAddress}, ${record.City}, ${record.StateOrProvince}, ${record.Country}`
+        .replace(/[&\/\\#+()$~%.'":*?<>{}]/g, '')
+        .replace(record.UnitNumber, '')
+        .replace('-', '')
+        .trim();
       console.log('address ===>', address);
 
       const photos = await getCreaPhotos(records[0].ListingKey);
@@ -63,6 +64,8 @@ export const creaSync = async (db: Db) => {
         type: 'Point',
         coordinates: [],
       };
+
+      let geoCode: IGeoCode | null = null;
 
       console.log('position ===>', listing.Longitude, listing.Latitude);
       if (listing.Longitude && listing.Latitude) {
@@ -81,23 +84,46 @@ export const creaSync = async (db: Db) => {
       } else {
         const coordinates = await db.collection<ICoordinates>('coordinates').findOne({ address });
         if (!coordinates) {
-          const position = await getGeocode(address);
-          console.log('position ====>', position);
-          if (!position) continue;
+          geoCode = await getGeocode(address);
+
+          if (!geoCode) continue;
+          if (
+            (geoCode.resultType !== 'houseNumber' && geoCode.resultType !== 'street') ||
+            geoCode.scoring.queryScore < 0.8
+          ) {
+            // store result into notFoundListings
+            await db.collection('notFoundListings').updateOne(
+              { source: Source.crea, source_id: listing.ListingKey },
+              {
+                $set: {
+                  ...listing,
+                  photos,
+                  source: Source.crea,
+                  source_id: listing.ListingKey,
+                  timestamp,
+                  deleted: false,
+                  geoQuery: address,
+                  geoCode,
+                },
+              },
+              { upsert: true }
+            );
+            continue;
+          }
 
           await db.collection('coordinates').updateOne(
             { address },
             {
               $set: {
                 address,
-                lng: position.lng,
-                lat: position.lat,
+                lng: geoCode.position.lng,
+                lat: geoCode.position.lat,
               },
             },
             { upsert: true }
           );
 
-          location.coordinates = [position.lng, position.lat];
+          location.coordinates = [geoCode.position.lng, geoCode.position.lat];
         } else {
           location.coordinates = [coordinates.lng, coordinates.lat];
         }
@@ -114,6 +140,8 @@ export const creaSync = async (db: Db) => {
             timestamp,
             deleted: false,
             location,
+            geoQuery: address,
+            geoCode,
           },
         },
         { upsert: true }

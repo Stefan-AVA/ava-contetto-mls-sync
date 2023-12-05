@@ -21,6 +21,39 @@ export interface ILocation {
   coordinates: number[]; // lng, lat
 }
 
+export interface IGeoCode {
+  title: string;
+  id: string;
+  resultType: string;
+  address: any;
+  position: {
+    lat: number;
+    lng: number;
+  };
+  access: {
+    lat: number;
+    lng: number;
+  }[];
+  mapView: {
+    west: number;
+    south: number;
+    east: number;
+    north: number;
+  };
+  scoring: {
+    queryScore: number;
+    fieldScore: {
+      country: number;
+      state: number;
+      city?: number;
+      houseNumber?: number;
+      district?: number;
+      postalCode?: number;
+      streets?: number[];
+    };
+  };
+}
+
 export interface ICoordinates {
   address: string;
   lng: number;
