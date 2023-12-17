@@ -53,7 +53,7 @@ export const creaSync = async (db: Db) => {
         .trim();
       console.log('address ===>', address);
 
-      const photos = await getCreaPhotos(records[0].ListingKey);
+      const photos = await getCreaPhotos(record.ListingKey);
 
       const listing: any = Object.keys(record).reduce(
         (obj, key) => ({ ...obj, [key]: stValues.includes(key) ? record[key] : formatField(record[key]) }),
